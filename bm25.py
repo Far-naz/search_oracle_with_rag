@@ -1,0 +1,36 @@
+import re
+from collections import Counter
+from typing import List
+
+#def tokenize(text: str) -> List[str]:
+#    return re.findall(r"[a-z0-9]+", text.lower())
+
+_TOKEN_RE = re.compile(r"\b\w+\b", re.UNICODE)
+
+def tokenize(text: str) -> list[str]:
+    if not text:
+        return []
+    text = text.lower()
+    return _TOKEN_RE.findall(text)
+
+def bm25_score(
+    query_tokens: List[str],
+    doc_tokens: List[str],
+    avg_doc_len: float,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> float:
+    if not query_tokens or not doc_tokens:
+        return 0.0
+    doc_len = len(doc_tokens)
+    tf = Counter(doc_tokens)
+    score = 0.0
+    for token in query_tokens:
+        f = tf.get(token, 0)
+        if f == 0:
+            continue
+        numerator = f * (k1 + 1)
+        denominator = f + k1 * (1 - b + b * doc_len / max(avg_doc_len, 1))
+        score += numerator / denominator
+    max_score = len(set(query_tokens)) * (k1 + 1)
+    return min(score / max_score, 1.0) if max_score > 0 else 0.0
