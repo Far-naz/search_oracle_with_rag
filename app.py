@@ -8,9 +8,13 @@ from advisor_explainability import (
     render_term_pills,
 )
 from chroma_index import initialize_chroma_database
-from enrich_advisors_from_profiles import fetch_and_update_advisors
 from search_engine import ChromaSearchEngine
 from advisor_match_output import MatchAdvisor
+
+try:
+    from enrich_advisors_from_profiles import fetch_and_update_advisors
+except ImportError:
+    fetch_and_update_advisors = None
 
 st.set_page_config(
     page_title="Oracle Advisor Search",
@@ -187,11 +191,14 @@ def main() -> None:
 
         st.subheader("Fetch new advisor data")
         if st.button("Fetch and update advisors", type="secondary"):
-            with st.spinner("Fetching advisor data and updating database..."):
-                #fetch_and_update_advisors()
-                engine = get_search_engine()
-                stats = engine.get_collection_stats()
-                st.success("Advisor data updated successfully!")
+            if fetch_and_update_advisors is None:
+                st.info("Advisor refresh is not available in this checkout because enrich_advisors_from_profiles.py is missing.")
+            else:
+                with st.spinner("Fetching advisor data and updating database..."):
+                    fetch_and_update_advisors()
+                    engine = get_search_engine()
+                    stats = engine.get_collection_stats()
+                    st.success("Advisor data updated successfully!")
 
         st.subheader("API Key")
         st.write("Optional: add a Gemini API key to generate matching explanations.")
