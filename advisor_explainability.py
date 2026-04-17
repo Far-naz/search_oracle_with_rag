@@ -13,7 +13,6 @@ from typing import List
 import requests
 
 from advisors_data import Advisor
-from config import STOPWORDS
 from bm25 import tokenize
 
 
