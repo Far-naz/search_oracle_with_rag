@@ -1,17 +1,23 @@
 import re
 from collections import Counter
 from typing import List
+from config import STOPWORDS
 
 #def tokenize(text: str) -> List[str]:
 #    return re.findall(r"[a-z0-9]+", text.lower())
 
 _TOKEN_RE = re.compile(r"\b\w+\b", re.UNICODE)
 
-def tokenize(text: str) -> list[str]:
+def tokenize(text: str, remove_stopwords: bool = True) -> list[str]:
     if not text:
         return []
-    text = text.lower()
-    return _TOKEN_RE.findall(text)
+    tokens = _TOKEN_RE.findall(text.lower())
+
+    if remove_stopwords:
+        filtered = [t for t in tokens if t not in STOPWORDS]
+        if filtered:
+            return filtered
+    return tokens
 
 def bm25_score(
     query_tokens: List[str],

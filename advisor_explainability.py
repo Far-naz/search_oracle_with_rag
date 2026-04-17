@@ -13,6 +13,8 @@ from typing import List
 import requests
 
 from advisors_data import Advisor
+from config import STOPWORDS
+from bm25 import tokenize
 
 
 def _ordered_unique(values: List[str]) -> List[str]:
@@ -26,7 +28,11 @@ def _ordered_unique(values: List[str]) -> List[str]:
 
 
 def _tokenize_text(value: str) -> set[str]:
-    return set(re.findall(r"\b\w+\b", value.lower()))
+    if not value:
+        return set()
+
+    token = tokenize(value, remove_stopwords=True)
+    return set(token)
 
 
 def get_matched_terms(query: str, advisor: Advisor) -> List[str]:
