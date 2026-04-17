@@ -5,11 +5,12 @@ Oracle Advisor Search is a Streamlit app for finding advisors by research topic,
 ## What is in this project
 
 - `app.py` is the Streamlit UI.
-- `search_engine.py` builds the hybrid search layer.
-- `chroma_index.py` loads advisor data into a persisted ChromaDB collection.
-- `advisors_data.py` defines the advisor model and JSON helpers.
-- `advisor_explainability.py` renders highlights and optional Gemini explanations.
-- `bm25.py` provides lexical scoring for re-ranking.
+- `advisors/` contains advisor domain models, repository loading, and match output types.
+- `search_engines/` contains BM25 and Chroma search engine/index bootstrap logic.
+- `helpers/` contains shared helper utilities.
+- `explanations/` contains advisor explainability and highlight generation.
+- `generators/` contains data generation/enrichment scripts.
+- Legacy top-level files (`search_engine.py`, `chroma_index.py`, `advisors_data.py`, etc.) are thin compatibility wrappers that forward to the new package modules.
 - `data/[YOURFILE].json` is the advisor dataset used by the app.
 
 ## Requirements
@@ -51,7 +52,7 @@ If you add a Gemini API key in the sidebar, the app can generate a short explana
 
 ## Data refresh
 
-The UI includes a button for refreshing advisor data, but that feature depends on an optional enrichment script named `enrich_advisors_from_profiles.py`. If that file is not present in your checkout, the app still runs and the refresh button shows a notice instead of failing.
+The UI includes a button for refreshing advisor data, but that feature depends on `generators/advisor_profile_enricher.py`. If that file is not present in your checkout, the app still runs and the refresh button shows a notice instead of failing.
 
 ## Notes
 

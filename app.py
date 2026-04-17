@@ -1,18 +1,18 @@
 import streamlit as st
 
-from advisor_explainability import (
+from explanations.advisor_explainability import (
     generate_rag_explanation,
     get_highlight_terms,
     get_matched_terms,
     highlight_html,
     render_term_pills,
 )
-from chroma_index import initialize_chroma_database
-from search_engine import ChromaSearchEngine
-from advisor_match_output import MatchAdvisor
+from search_engines.chroma_index import initialize_chroma_database
+from search_engines.chroma_engine import ChromaSearchEngine
+from advisors.match_output import MatchAdvisor
 
 try:
-    from enrich_advisors_from_profiles import fetch_and_update_advisors
+    from generators.advisor_profile_enricher import fetch_and_update_advisors
 except ImportError:
     fetch_and_update_advisors = None
 
@@ -192,7 +192,7 @@ def main() -> None:
         st.subheader("Fetch new advisor data")
         if st.button("Fetch and update advisors", type="secondary"):
             if fetch_and_update_advisors is None:
-                st.info("Advisor refresh is not available in this checkout because enrich_advisors_from_profiles.py is missing.")
+                st.info("Advisor refresh is not available in this checkout because generators/advisor_profile_enricher.py is missing.")
             else:
                 with st.spinner("Fetching advisor data and updating database..."):
                     fetch_and_update_advisors()
