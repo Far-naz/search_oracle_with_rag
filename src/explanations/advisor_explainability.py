@@ -10,9 +10,8 @@ import html
 import re
 from typing import List
 
-import requests
-
 from src.advisors.models import Advisor
+from src.helpers.openrouter_client import openrouter_chat_completion
 from src.search_engines.bm25 import tokenize
 
 
@@ -141,22 +140,14 @@ Format your response as:
 ### 2. [Advisor Name]
 [Explanation]
 """
-    try:
-        response = requests.post(
-            f"https://openrouter.ai/api/v1/chat/completions",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "maxOutputTokens": 1500,
-                    "temperature": 0.7,
-                },
-            },
-            timeout=30,
-        )
-        if response.status_code != 200:
-            return None
-        data = response.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception:
+    text, error = openrouter_chat_completion(
+        prompt=prompt,
+        api_key=api_key,
+        system_prompt="You explain why advisors match a student query.",
+        temperature=0.7,
+        max_tokens=1500,
+    )
+    if error:
         return None
+
+    return text

@@ -2,31 +2,9 @@ import json
 import re
 from typing import List, Tuple
 
-import requests
-
 from src.advisors.match_output import MatchAdvisor
 from src.advisors.models import Advisor, build_advisor_document
-
-
-def _extract_openrouter_text(data: dict) -> str:
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return ""
-
-    message = choices[0].get("message", {})
-    content = message.get("content", "")
-
-    if isinstance(content, str):
-        return content
-
-    if isinstance(content, list):
-        text_parts = []
-        for part in content:
-            if isinstance(part, dict) and isinstance(part.get("text"), str):
-                text_parts.append(part["text"])
-        return "\n".join(text_parts)
-
-    return ""
+from src.helpers.openrouter_client import openrouter_chat_completion
 
 
 def _strip_code_fences(text: str) -> str:
@@ -134,30 +112,15 @@ Advisor candidates:
 {chr(10).join(advisor_lines)}
 """
 
-    try:
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            json={
-                "model": "openrouter/auto",
-                "messages": [
-                    {"role": "system", "content": "You rank advisor matches and return strict JSON only."},
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.1,
-                "max_tokens": 1200,
-            },
-            timeout=30,
-        )
-        if response.status_code != 200:
-            return [], f"LLM request failed with status {response.status_code}."
-
-        data = response.json()
-        text = _extract_openrouter_text(data)
-        if not text:
-            return [], "LLM response did not contain usable text."
-    except Exception:
-        return [], "LLM request failed due to network or response parsing error."
+    text, error = openrouter_chat_completion(
+        prompt=prompt,
+        api_key=api_key,
+        system_prompt="You rank advisor matches and return strict JSON only.",
+        temperature=0.1,
+        max_tokens=1200,
+    )
+    if error:
+        return [], error
 
     parsed = _parse_matches_json(text)
     if not parsed:

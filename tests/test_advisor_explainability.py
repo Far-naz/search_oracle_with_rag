@@ -63,25 +63,10 @@ def test_generate_rag_explanation_returns_none_without_api_key() -> None:
 def test_generate_rag_explanation_success(monkeypatch) -> None:
     advisor = _advisor()
 
-    class FakeResponse:
-        status_code = 200
+    def fake_openrouter(*args, **kwargs):
+        return "Advisor explanation", None
 
-        @staticmethod
-        def json() -> dict:
-            return {
-                "candidates": [
-                    {
-                        "content": {
-                            "parts": [{"text": "Advisor explanation"}],
-                        }
-                    }
-                ]
-            }
-
-    def fake_post(*args, **kwargs):
-        return FakeResponse()
-
-    monkeypatch.setattr("src.explanations.advisor_explainability.requests.post", fake_post)
+    monkeypatch.setattr("src.explanations.advisor_explainability.openrouter_chat_completion", fake_openrouter)
 
     result = generate_rag_explanation("energy", [{"advisor": advisor}], api_key="test-key")
     assert result == "Advisor explanation"
@@ -90,17 +75,10 @@ def test_generate_rag_explanation_success(monkeypatch) -> None:
 def test_generate_rag_explanation_non_200(monkeypatch) -> None:
     advisor = _advisor()
 
-    class FakeResponse:
-        status_code = 500
+    def fake_openrouter(*args, **kwargs):
+        return None, "error"
 
-        @staticmethod
-        def json() -> dict:
-            return {}
-
-    def fake_post(*args, **kwargs):
-        return FakeResponse()
-
-    monkeypatch.setattr("src.explanations.advisor_explainability.requests.post", fake_post)
+    monkeypatch.setattr("src.explanations.advisor_explainability.openrouter_chat_completion", fake_openrouter)
 
     result = generate_rag_explanation("energy", [{"advisor": advisor}], api_key="test-key")
     assert result is None
