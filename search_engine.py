@@ -90,7 +90,7 @@ class ChromaSearchEngine:
             self.advisors[advisor_id] = advisor
             self.advisor_documents[advisor_id] = document_text
 
-    def _build_candidates(self, results: dict) -> List[MatchAdvisor]:
+    def _build_candidates(self, results) -> List[MatchAdvisor]:
         """Convert raw ChromaDB results into MatchAdvisor objects."""
         matched: List[MatchAdvisor] = []
         if not (results and results.get("ids") and results["ids"]):
@@ -116,6 +116,8 @@ class ChromaSearchEngine:
                 doc = results["documents"][0][index]
                 self.advisor_documents[advisor_id] = doc
 
+            if not doc:
+                continue
             matched.append(
                 MatchAdvisor(advisor=advisor, score=semantic_score, document=doc)
             )
