@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 
 from src.explanations.advisor_explainability import (
@@ -9,7 +10,9 @@ from src.explanations.advisor_explainability import (
 )
 from src.search_engines.chroma_index import initialize_chroma_database
 from src.search_engines.chroma_engine import ChromaSearchEngine
+from src.search_engines.llm_search import llm_search_advisors
 from src.advisors.match_output import MatchAdvisor
+from config import ENABLE_LLM_SEARCH
 
 try:
     from src.generators.advisor_profile_enricher import fetch_and_update_advisors
@@ -28,7 +31,9 @@ def get_search_engine() -> ChromaSearchEngine:
     return initialize_chroma_database()
 
 
-def render_result_card(query: str, result: MatchAdvisor, explanation: str | None = None) -> None:
+def render_result_card(
+    query: str, result: MatchAdvisor, explanation: str | None = None
+) -> None:
     advisor = result.advisor
     score = result.score
     document = result.document
@@ -55,22 +60,39 @@ def render_result_card(query: str, result: MatchAdvisor, explanation: str | None
 
         if explanation:
             st.write("**Why this advisor matches**")
-            st.markdown(highlight_html(explanation, highlight_terms), unsafe_allow_html=True)
+            st.markdown(
+                highlight_html(explanation, highlight_terms), unsafe_allow_html=True
+            )
 
         if document:
             st.write("**Evidence from advisor profile**")
             preview = document[:600]
             if len(document) > 600:
                 preview += "..."
-            st.markdown(highlight_html(preview, highlight_terms), unsafe_allow_html=True)
+            st.markdown(
+                highlight_html(preview, highlight_terms), unsafe_allow_html=True
+            )
 
         with st.expander("Profile details"):
             st.write("**Research output**")
-            st.markdown(highlight_html("; ".join(advisor.research_output) or "N/A", highlight_terms), unsafe_allow_html=True)
+            st.markdown(
+                highlight_html(
+                    "; ".join(advisor.research_output) or "N/A", highlight_terms
+                ),
+                unsafe_allow_html=True,
+            )
             st.write("**Activities**")
-            st.markdown(highlight_html("; ".join(advisor.activities) or "N/A", highlight_terms), unsafe_allow_html=True)
+            st.markdown(
+                highlight_html("; ".join(advisor.activities) or "N/A", highlight_terms),
+                unsafe_allow_html=True,
+            )
             st.write("**Press/Media**")
-            st.markdown(highlight_html("; ".join(advisor.press_media) or "N/A", highlight_terms), unsafe_allow_html=True)
+            st.markdown(
+                highlight_html(
+                    "; ".join(advisor.press_media) or "N/A", highlight_terms
+                ),
+                unsafe_allow_html=True,
+            )
 
 
 def main() -> None:
@@ -134,7 +156,9 @@ def main() -> None:
 
     with left_col:
         st.subheader("Chat")
-        st.write("Ask for advisors by name, research topic, methods, courses, publications, section, building, or email.")
+        st.write(
+            "Ask for advisors by name, research topic, publications, department, or email."
+        )
 
         query = st.text_area(
             "Your message",
@@ -152,23 +176,43 @@ def main() -> None:
             else:
                 with st.spinner("Searching advisors..."):
                     engine = get_search_engine()
-                    results = engine.search(query.strip(), top_k=5)
+                    api_key = st.secrets.get("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API_KEY", "")
+                    llm_error = None
+
+                    if ENABLE_LLM_SEARCH:
+                        if not api_key:
+                            st.warning(
+                                "LLM search is enabled in config, but no OpenRouter API key is provided."
+                            )
+                            results = []
+                        else:
+                            results, llm_error = llm_search_advisors(
+                                query=query.strip(),
+                                advisors=list(engine.get_all_advisors().values()),
+                                top_k=5,
+                                api_key=api_key,
+                            )
+                    else:
+                        results = engine.search(query.strip(), top_k=5)
 
                     if not results:
+                        if ENABLE_LLM_SEARCH and llm_error:
+                            st.warning(f"LLM search issue: {llm_error}")
                         st.info("No strong matches were found for this query.")
                     else:
-                        api_key = st.session_state.get("api_key", "")
                         result_dicts = []
                         for match in results:
-                            result_dicts.append({
-                                "advisor": match.advisor,
-                                "score": match.score,
-                                "document": match.document,
-                            })
+                            result_dicts.append(
+                                {
+                                    "advisor": match.advisor,
+                                    "score": match.score,
+                                    "document": match.document,
+                                }
+                            )
                         explanation = generate_rag_explanation(
                             query.strip(),
                             result_dicts,
-                            api_key=api_key.strip() or None,
+                            api_key=api_key or None,
                         )
 
                         st.session_state["last_query"] = query.strip()
@@ -179,7 +223,9 @@ def main() -> None:
             st.subheader("Results")
             explanation_text = st.session_state.get("last_explanation")
             for result in st.session_state["last_results"]:
-                render_result_card(st.session_state.get("last_query", ""), result, explanation_text)
+                render_result_card(
+                    st.session_state.get("last_query", ""), result, explanation_text
+                )
 
     with right_col:
         st.subheader("List of advisors in database")
@@ -187,12 +233,13 @@ def main() -> None:
         stats = engine.get_collection_stats()
         st.write(f"Collection: {stats['collection_name']}")
         st.write(f"Stored advisors: {stats['total_advisors']}")
-        st.caption(f"Data directory: {stats['persist_directory']}")
 
         st.subheader("Fetch new advisor data")
         if st.button("Fetch and update advisors", type="secondary"):
             if fetch_and_update_advisors is None:
-                st.info("Advisor refresh is not available in this checkout because generators/advisor_profile_enricher.py is missing.")
+                st.info(
+                    "Advisor refresh is not available in this checkout because generators/advisor_profile_enricher.py is missing."
+                )
             else:
                 with st.spinner("Fetching advisor data and updating database..."):
                     fetch_and_update_advisors()
@@ -200,18 +247,23 @@ def main() -> None:
                     stats = engine.get_collection_stats()
                     st.success("Advisor data updated successfully!")
 
-        st.subheader("API Key")
-        st.write("Optional: add a Gemini API key to generate matching explanations.")
-        st.text_input(
-            "Gemini API key",
-            type="password",
-            placeholder="Paste your API key here",
-            key="api_key",
-            help="Used only for explanation text generation after the search finishes.",
-        )
+        
+        if ENABLE_LLM_SEARCH:
+            st.subheader("API Key")
+            st.write(
+                "Required when LLM search is enabled in config. Also used for optional explanations."
+            )
+        
+            st.text_input(
+                "OpenRouter API key",
+                type="password",
+                placeholder="Paste your API key here",
+                key="api_key",
+                help="Used only for explanation text generation after the search finishes.",
+            )
 
-        st.divider()
-        st.caption("The key stays in your Streamlit session while the app is running.")
+            st.divider()
+            st.caption("The key stays in your Streamlit session while the app is running.")
 
 
 if __name__ == "__main__":

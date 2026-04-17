@@ -3,3 +3,4 @@ data/
 __pycache__/
 .vscode/
 /chroma_data/
+.streamlit/
