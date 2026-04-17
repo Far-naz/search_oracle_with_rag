@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import List
 
-from advisors.models import Advisor
+from src.advisors.models import Advisor
 from config import ADVISOR_DATA_FILE
 
 

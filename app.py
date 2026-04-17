@@ -1,18 +1,18 @@
 import streamlit as st
 
-from explanations.advisor_explainability import (
+from src.explanations.advisor_explainability import (
     generate_rag_explanation,
     get_highlight_terms,
     get_matched_terms,
     highlight_html,
     render_term_pills,
 )
-from search_engines.chroma_index import initialize_chroma_database
-from search_engines.chroma_engine import ChromaSearchEngine
-from advisors.match_output import MatchAdvisor
+from src.search_engines.chroma_index import initialize_chroma_database
+from src.search_engines.chroma_engine import ChromaSearchEngine
+from src.advisors.match_output import MatchAdvisor
 
 try:
-    from generators.advisor_profile_enricher import fetch_and_update_advisors
+    from src.generators.advisor_profile_enricher import fetch_and_update_advisors
 except ImportError:
     fetch_and_update_advisors = None
 

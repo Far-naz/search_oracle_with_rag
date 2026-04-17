@@ -4,15 +4,15 @@ from typing import Dict, List, Optional
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
-from advisors.match_output import MatchAdvisor
-from advisors.models import (
+from src.advisors.match_output import MatchAdvisor
+from src.advisors.models import (
     Advisor,
     build_advisor_document,
     build_advisor_metadata,
     reconstruct_advisor,
 )
 from config import CLEAR_DB, LOWEST_SEMANTIC_SCORE
-from search_engines.bm25 import bm25_score, tokenize
+from src.search_engines.bm25 import bm25_score, tokenize
 
 
 class ChromaSearchEngine:

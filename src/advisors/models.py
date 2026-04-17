@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 import json
 
-from helpers.json_utils import safe_json_loads
+from src.helpers.json_utils import safe_json_loads
 
 
 @dataclass

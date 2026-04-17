@@ -2,3 +2,4 @@ streamlit
 chromadb
 requests
 sentence_transformers
+pytest

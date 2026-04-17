@@ -12,8 +12,8 @@ from typing import List
 
 import requests
 
-from advisors.models import Advisor
-from search_engines.bm25 import tokenize
+from src.advisors.models import Advisor
+from src.search_engines.bm25 import tokenize
 
 
 def _ordered_unique(values: List[str]) -> List[str]:

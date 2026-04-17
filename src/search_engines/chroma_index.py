@@ -6,8 +6,8 @@ Connects the advisor repository to the Chroma search engine.
 
 from __future__ import annotations
 
-from advisors.repository import load_available_advisors
-from search_engines.chroma_engine import ChromaSearchEngine
+from src.advisors.repository import load_available_advisors
+from src.search_engines.chroma_engine import ChromaSearchEngine
 
 
 def initialize_chroma_database(

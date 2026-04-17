@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from advisors.models import Advisor
+from src.advisors.models import Advisor
 
 
 @dataclass

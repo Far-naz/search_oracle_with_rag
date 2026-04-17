@@ -25,8 +25,8 @@ from typing import Any, Iterable
 
 import requests
 
-from advisors.repository import load_available_advisors
-from advisors.models import Advisor
+from src.advisors.repository import load_available_advisors
+from src.advisors.models import Advisor
 from config import ADVISOR_DATA_FILE
 
 
