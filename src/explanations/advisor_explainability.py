@@ -143,8 +143,8 @@ Format your response as:
 """
     try:
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
-            headers={"Content-Type": "application/json"},
+            f"https://openrouter.ai/api/v1/chat/completions",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
