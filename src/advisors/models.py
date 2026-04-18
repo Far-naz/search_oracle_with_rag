@@ -17,6 +17,13 @@ class Advisor:
     press_media: List[str] = field(default_factory=list)
 
 
+@dataclass
+class MatchAdvisor:
+    advisor: Advisor
+    score: float
+    document: str
+
+
 def build_advisor_document(advisor: Advisor) -> str:
     """
     Flatten an advisor profile into a single searchable text document.
@@ -37,7 +44,33 @@ def build_advisor_document(advisor: Advisor) -> str:
     return "\n".join(parts)
 
 
+def build_advisor_raw_text(advisor: Advisor) -> str:
+    parts = [
+        f"{advisor.name} - {advisor.title}, {advisor.section}",
+        f"Email: {advisor.email}",
+        f"Profile URL: {advisor.profile_url}",
+    ]
+    if advisor.research_output:
+        parts.append(f"Research output: {'; '.join(advisor.research_output)}")
+    if advisor.activities:
+        parts.append(f"Activities: {'; '.join(advisor.activities)}")
+    if advisor.press_media:
+        parts.append(f"Press/Media: {'; '.join(advisor.press_media)}")
+    return "\n".join(parts)
+
+
+def build_advisor_normalized_text(advisor: Advisor) -> str:
+    from src.search_engines.bm25 import tokenize
+
+    raw_text = build_advisor_raw_text(advisor)
+    normalized_tokens = tokenize(raw_text, remove_stopwords=True, use_lemmatization=True)
+    return " ".join(normalized_tokens)
+
+
 def build_advisor_metadata(advisor: Advisor) -> Dict[str, str]:
+    raw_text = build_advisor_raw_text(advisor)
+    normalized_text = build_advisor_normalized_text(advisor)
+
     return {
         "name": advisor.name,
         "title": advisor.title,
@@ -47,6 +80,8 @@ def build_advisor_metadata(advisor: Advisor) -> Dict[str, str]:
         "research_output": json.dumps(advisor.research_output),
         "activities": json.dumps(advisor.activities),
         "press_media": json.dumps(advisor.press_media),
+        "raw_text": raw_text,
+        "normalized_text": normalized_text,
     }
 
 

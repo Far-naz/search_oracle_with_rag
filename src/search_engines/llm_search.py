@@ -2,8 +2,7 @@ import json
 import re
 from typing import List, Tuple
 
-from src.advisors.match_output import MatchAdvisor
-from src.advisors.models import Advisor, build_advisor_document
+from src.advisors.models import Advisor, MatchAdvisor, build_advisor_document
 from src.helpers.openrouter_client import openrouter_chat_completion
 
 
