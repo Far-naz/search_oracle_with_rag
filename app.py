@@ -11,7 +11,7 @@ from src.explanations.advisor_explainability import (
 from src.search_engines.chroma_index import initialize_chroma_database
 from src.search_engines.chroma_engine import ChromaSearchEngine
 from src.search_engines.llm_search import llm_search_advisors
-from src.advisors.match_output import MatchAdvisor
+from src.advisors.models import MatchAdvisor
 from config import ENABLE_LLM_SEARCH
 
 try:
@@ -155,7 +155,7 @@ def main() -> None:
     left_col, right_col = st.columns([3, 1], gap="large")
 
     with left_col:
-        st.subheader("Chat")
+        st.subheader("Search for advisors")
         st.write(
             "Ask for advisors by name, research topic, publications, department, or email."
         )
@@ -196,6 +196,9 @@ def main() -> None:
                         results = engine.search(query.strip(), top_k=5)
 
                     if not results:
+                        st.session_state["last_query"] = ""
+                        st.session_state["last_results"] = []
+                        st.session_state["last_explanation"] = None
                         if ENABLE_LLM_SEARCH and llm_error:
                             st.warning(f"LLM search issue: {llm_error}")
                         st.info("No strong matches were found for this query.")
@@ -209,15 +212,17 @@ def main() -> None:
                                     "document": match.document,
                                 }
                             )
-                        explanation = generate_rag_explanation(
-                            query.strip(),
-                            result_dicts,
-                            api_key=api_key or None,
-                        )
+                        if ENABLE_LLM_SEARCH:
+                            explanation = generate_rag_explanation(
+                                query.strip(),
+                                result_dicts,
+                                api_key=api_key or None,
+                            )
+                            st.session_state["last_explanation"] = explanation
 
                         st.session_state["last_query"] = query.strip()
                         st.session_state["last_results"] = results
-                        st.session_state["last_explanation"] = explanation
+                        
 
         if st.session_state.get("last_results"):
             st.subheader("Results")

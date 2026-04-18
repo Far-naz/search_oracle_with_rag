@@ -8,10 +8,28 @@ from config import STOPWORDS
 _TOKEN_RE = re.compile(r"\b\w+\b", re.UNICODE)
 
 
-def tokenize(text: str, remove_stopwords: bool = True) -> list[str]:
+def _normalize_token(token: str) -> str:
+    if len(token) > 4 and token.endswith("ies"):
+        return token[:-3] + "y"
+    if len(token) > 4 and token.endswith("ing"):
+        return token[:-3]
+    if len(token) > 3 and token.endswith("ed"):
+        return token[:-2]
+    if len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
+        return token[:-1]
+    return token
+
+
+def tokenize(
+    text: str,
+    remove_stopwords: bool = True,
+    use_lemmatization: bool = True,
+) -> list[str]:
     if not text:
         return []
     tokens = _TOKEN_RE.findall(text.lower())
+    if use_lemmatization:
+        tokens = [_normalize_token(t) for t in tokens]
 
     if remove_stopwords:
         filtered = [t for t in tokens if t not in STOPWORDS]
