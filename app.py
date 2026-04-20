@@ -7,6 +7,7 @@ from src.explanations.advisor_explainability import (
     get_matched_terms,
     highlight_html,
     render_term_pills,
+    split_explanations_by_advisor,
 )
 from src.search_engines.chroma_index import initialize_chroma_database
 from src.search_engines.chroma_engine import ChromaSearchEngine
@@ -49,6 +50,8 @@ def render_result_card(
             st.metric("Match", f"{score:.2f}")
 
         st.write(f"**Email:** {advisor.email}")
+        if advisor.profile_url:
+            st.markdown(f"**Profile:** [Open advisor page]({advisor.profile_url})")
 
         if matched_terms:
             st.write("**Matched terms**")
@@ -199,6 +202,7 @@ def main() -> None:
                         st.session_state["last_query"] = ""
                         st.session_state["last_results"] = []
                         st.session_state["last_explanation"] = None
+                        st.session_state["last_explanations_by_name"] = {}
                         if ENABLE_LLM_SEARCH and llm_error:
                             st.warning(f"LLM search issue: {llm_error}")
                         st.info("No strong matches were found for this query.")
@@ -219,6 +223,13 @@ def main() -> None:
                                 api_key=api_key or None,
                             )
                             st.session_state["last_explanation"] = explanation
+                            st.session_state["last_explanations_by_name"] = split_explanations_by_advisor(
+                                explanation or "",
+                                [match.advisor for match in results],
+                            )
+                        else:
+                            st.session_state["last_explanation"] = None
+                            st.session_state["last_explanations_by_name"] = {}
 
                         st.session_state["last_query"] = query.strip()
                         st.session_state["last_results"] = results
@@ -226,10 +237,12 @@ def main() -> None:
 
         if st.session_state.get("last_results"):
             st.subheader("Results")
-            explanation_text = st.session_state.get("last_explanation")
+            explanations_by_name = st.session_state.get("last_explanations_by_name") or {}
             for result in st.session_state["last_results"]:
                 render_result_card(
-                    st.session_state.get("last_query", ""), result, explanation_text
+                    st.session_state.get("last_query", ""),
+                    result,
+                    explanations_by_name.get(result.advisor.name),
                 )
 
     with right_col:

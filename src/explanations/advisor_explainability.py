@@ -12,6 +12,7 @@ from typing import List
 
 from src.advisors.models import Advisor
 from src.helpers.openrouter_client import openrouter_chat_completion
+from src.helpers.text_normalization import normalize_name
 from src.search_engines.bm25 import tokenize
 
 
@@ -151,3 +152,39 @@ Format your response as:
         return None
 
     return text
+
+
+def split_explanations_by_advisor(explanation_text: str, advisors: List[Advisor]) -> dict[str, str]:
+    if not explanation_text:
+        return {}
+
+    advisor_lookup = {normalize_name(advisor.name): advisor.name for advisor in advisors}
+    blocks: dict[str, str] = {}
+
+    heading_pattern = re.compile(
+        r"(?m)^#{1,6}\s*(?:\d+\.?\s*)?(?P<name>[^\n#]+?)\s*$"
+    )
+    matches = list(heading_pattern.finditer(explanation_text))
+    if not matches:
+        return {}
+
+    for idx, match in enumerate(matches):
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(explanation_text)
+        heading_name = normalize_name(match.group("name"))
+
+        advisor_name = advisor_lookup.get(heading_name)
+        if advisor_name is None:
+            for known_name, canonical in advisor_lookup.items():
+                if heading_name in known_name or known_name in heading_name:
+                    advisor_name = canonical
+                    break
+
+        if advisor_name is None:
+            continue
+
+        body = explanation_text[start:end].strip()
+        if body:
+            blocks[advisor_name] = body
+
+    return blocks
