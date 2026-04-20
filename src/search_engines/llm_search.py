@@ -1,9 +1,11 @@
 import json
 import re
+from difflib import SequenceMatcher
 from typing import List, Tuple
 
 from src.advisors.models import Advisor, MatchAdvisor, build_advisor_document
 from src.helpers.openrouter_client import openrouter_chat_completion
+from src.helpers.text_normalization import normalize_name
 
 
 def _strip_code_fences(text: str) -> str:
@@ -50,19 +52,43 @@ def _resolve_advisor(name: str, advisors: List[Advisor]) -> Advisor | None:
     if not name:
         return None
 
-    target = name.strip().lower()
+    target = normalize_name(name)
     if not target:
         return None
 
-    for advisor in advisors:
-        if advisor.name.strip().lower() == target:
-            return advisor
+    normalized = {normalize_name(advisor.name): advisor for advisor in advisors}
+    if target in normalized:
+        return normalized[target]
+
+    best_match: Advisor | None = None
+    best_score = 0.0
+    second_best_score = 0.0
 
     for advisor in advisors:
-        candidate = advisor.name.strip().lower()
-        if target in candidate or candidate in target:
-            return advisor
+        candidate = normalize_name(advisor.name)
+        ratio = SequenceMatcher(None, target, candidate).ratio()
+        if ratio > best_score:
+            second_best_score = best_score
+            best_score = ratio
+            best_match = advisor
+        elif ratio > second_best_score:
+            second_best_score = ratio
 
+    # Only accept a fuzzy name if it is clearly close and unambiguous.
+    if best_match and best_score >= 0.9 and (best_score - second_best_score) >= 0.03:
+        return best_match
+
+    return None
+
+
+def _parse_advisor_id(value, advisor_count: int) -> int | None:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    if 1 <= parsed <= advisor_count:
+        return parsed
     return None
 
 
@@ -76,10 +102,11 @@ def llm_search_advisors(
         return [], "Missing API key or advisor data."
 
     advisor_lines = []
-    for advisor in advisors:
+    for index, advisor in enumerate(advisors, start=1):
         advisor_lines.append(
             " | ".join(
                 [
+                    f"id={index}",
                     f"name={advisor.name}",
                     f"title={advisor.title}",
                     f"section={advisor.section}",
@@ -95,11 +122,12 @@ def llm_search_advisors(
 Return ONLY valid JSON in this format:
 {{
   "matches": [
-    {{"name": "Exact Advisor Name", "score": 0.0, "reason": "one short reason"}}
+        {{"id": 0, "name": "Exact Advisor Name", "score": 0.0, "reason": "one short reason"}}
   ]
 }}
 Rules:
 - Choose at most {top_k} advisors.
+- Use advisor id exactly as listed in candidates.
 - Use advisor names exactly as listed.
 - Score must be between 0 and 1.
 - Do not include markdown, prose, or code fences.
@@ -121,6 +149,8 @@ Advisor candidates:
     if error:
         return [], error
 
+    if not text:
+        return [], "LLM did not return any text."
     parsed = _parse_matches_json(text)
     if not parsed:
         return [], "LLM response was not valid match JSON."
@@ -131,7 +161,14 @@ Advisor candidates:
         if not isinstance(item, dict):
             continue
 
-        advisor = _resolve_advisor(str(item.get("name", "")), advisors)
+        advisor = None
+        advisor_id = _parse_advisor_id(item.get("id"), advisor_count=len(advisors))
+        if advisor_id is not None:
+            advisor = advisors[advisor_id - 1]
+
+        if advisor is None:
+            advisor = _resolve_advisor(str(item.get("name", "")), advisors)
+
         if not advisor or advisor.name in seen_names:
             continue
 

@@ -5,6 +5,7 @@ from src.explanations.advisor_explainability import (
     get_matched_terms,
     highlight_html,
     render_term_pills,
+    split_explanations_by_advisor,
 )
 
 
@@ -82,3 +83,29 @@ def test_generate_rag_explanation_non_200(monkeypatch) -> None:
 
     result = generate_rag_explanation("energy", [{"advisor": advisor}], api_key="test-key")
     assert result is None
+
+
+def test_split_explanations_by_advisor_maps_sections() -> None:
+    advisor_a = _advisor()
+    advisor_b = Advisor(
+        name="Bob Scholar",
+        title="Professor",
+        section="Finance",
+        email="bob@example.com",
+        profile_url="https://example.com/bob",
+        research_output=[],
+        activities=[],
+        press_media=[],
+    )
+
+    explanation_text = """
+### 1. Alice Example
+Alice matches energy systems research.
+
+### 2. Bob Scholar
+Bob matches finance and market analytics.
+"""
+
+    mapped = split_explanations_by_advisor(explanation_text, [advisor_a, advisor_b])
+    assert "Alice matches energy systems research." in mapped["Alice Example"]
+    assert "Bob matches finance and market analytics." in mapped["Bob Scholar"]

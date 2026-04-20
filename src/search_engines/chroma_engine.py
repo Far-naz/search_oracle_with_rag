@@ -13,6 +13,7 @@ from src.advisors.models import (
     reconstruct_advisor,
 )
 from config import CLEAR_DB, LOWEST_SEMANTIC_SCORE
+from src.helpers.text_normalization import normalize_name
 from src.search_engines.bm25 import bm25_score, tokenize
 
 
@@ -174,27 +175,39 @@ class ChromaSearchEngine:
         self, query: str, section_filter: Optional[str] = None
     ) -> List[MatchAdvisor]:
         exact_ids = []
-        first_name = None
         email = None
-        words = query.split()
-        for word in words:
+        normalized_query = normalize_name(query)
+        if not normalized_query:
+            normalized_query = query.strip().lower()
+
+        for word in query.split():
             if "@" in word:
                 email = word
-            elif word.isalpha():
-                first_name = word
 
         if email:
             for advisor_id, advisor in self.advisors.items():
                 if advisor.email.lower() == email.lower():
                     exact_ids.append(advisor_id)
 
-        if first_name:
+        for advisor_id, advisor in self.advisors.items():
+            if normalize_name(advisor.name) == normalized_query:
+                exact_ids.append(advisor_id)
+
+        if not exact_ids and normalized_query:
             for advisor_id, advisor in self.advisors.items():
-                if advisor.name.lower().find(first_name.lower()) != -1:
+                if normalize_name(advisor.name).find(normalized_query) != -1:
                     exact_ids.append(advisor_id)
 
-        exact_matches: List["MatchAdvisor"] = []
+        deduped_exact_ids = []
+        seen_exact_ids = set()
         for advisor_id in exact_ids:
+            if advisor_id in seen_exact_ids:
+                continue
+            seen_exact_ids.add(advisor_id)
+            deduped_exact_ids.append(advisor_id)
+
+        exact_matches: List["MatchAdvisor"] = []
+        for advisor_id in deduped_exact_ids:
             advisor = self.advisors.get(advisor_id)
             if not advisor:
                 continue
