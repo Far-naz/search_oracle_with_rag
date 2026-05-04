@@ -1,7 +1,7 @@
 ADVISOR_DATA_FILE = "data/cbs_employees.json"
 CLEAR_DB = True
 LOWEST_SEMANTIC_SCORE = 0.5
-ENABLE_LLM_SEARCH = False
+ENABLE_LLM_SEARCH = True
 
 STOPWORDS = {
     "a", "an", "the", "and", "or", "but",
