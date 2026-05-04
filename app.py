@@ -13,8 +13,13 @@ from src.search_engines.chroma_index import initialize_chroma_database
 from src.search_engines.chroma_engine import ChromaSearchEngine
 from src.search_engines.coordinator import AdvisorSearchCoordinator
 from src.intent.hybrid_recognizer import HybridIntentRecognizer
+from src.intent.model_store import load_configured_intent_model
 from src.advisors.models import MatchAdvisor
-from config import ENABLE_LLM_SEARCH
+from config import (
+    ENABLE_LLM_SEARCH,
+    INTENT_ML_CONFIDENCE_THRESHOLD,
+    INTENT_RULE_CONFIDENCE_THRESHOLD,
+)
 
 try:
     from src.generators.advisor_profile_enricher import fetch_and_update_advisors
@@ -31,6 +36,20 @@ st.set_page_config(
 @st.cache_resource
 def get_search_engine() -> ChromaSearchEngine:
     return initialize_chroma_database()
+
+
+@st.cache_resource
+def get_intent_recognizer() -> HybridIntentRecognizer:
+    try:
+        ml_recognizer = load_configured_intent_model()
+    except Exception as exc:
+        st.warning(f"ML intent model could not be loaded: {exc}")
+        ml_recognizer = None
+    return HybridIntentRecognizer(
+        ml_recognizer=ml_recognizer,
+        rule_confidence_threshold=INTENT_RULE_CONFIDENCE_THRESHOLD,
+        ml_confidence_threshold=INTENT_ML_CONFIDENCE_THRESHOLD,
+    )
 
 
 def render_result_card(
@@ -150,7 +169,7 @@ def main() -> None:
         """
         <div class="hero">
             <h1>Oracle Advisor Search</h1>
-            <p>Describe your thesis interests in the chat box, then search for matching advisors.</p>
+            <p>Describe your thesis interests in the search box, then search for matching advisors.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -188,7 +207,7 @@ def main() -> None:
                     llm_error = None
                     coordinator = AdvisorSearchCoordinator(
                         search_engine=engine,
-                        intent_recognizer=HybridIntentRecognizer(),
+                        intent_recognizer=get_intent_recognizer(),
                         enable_llm_search=ENABLE_LLM_SEARCH,
                     )
                     results = coordinator.search(

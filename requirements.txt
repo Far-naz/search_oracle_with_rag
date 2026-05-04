@@ -6,3 +6,4 @@ pytest
 scikit-learn
 xgboost
 gensim
+mlflow

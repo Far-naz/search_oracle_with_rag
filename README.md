@@ -77,11 +77,15 @@ Minimal usage:
 from src.intent import HybridIntentRecognizer, MLIntentRecognizer
 
 texts = [
-	"hello",
 	"recommend an advisor for finance",
-	"what is the advisor email",
+	"which research area covers labor markets",
+	"advisor who is working on labor",
 ]
-labels = ["greeting", "advisor_search", "contact_lookup"]
+labels = [
+	"advisor_search",
+	"topic_search",
+	"publication_or_expertise_search",
+]
 
 ml = MLIntentRecognizer(
 	model_type="logistic_regression",
@@ -96,6 +100,32 @@ prediction = recognizer.predict("can you find me an advisor")
 
 print(prediction.intent, prediction.confidence, prediction.source)
 ```
+
+### Stored ML intent model
+
+The Streamlit app loads a trained ML recognizer from `models/intent/intent_model.pkl`
+when `ENABLE_ML_INTENT_RECOGNITION = True`. If that file is missing, the app still
+runs with rule-based intent recognition only.
+
+Train and store the local model artifact:
+
+```bash
+python -m src.intent.train_model
+```
+
+The same training command can also log the artifact to MLflow:
+
+```bash
+python -m src.intent.train_model --mlflow
+```
+
+Useful settings:
+
+- `INTENT_MODEL_PATH` controls the local pickle artifact path.
+- `INTENT_MODEL_STORE=local` loads the local artifact.
+- `INTENT_MODEL_STORE=mlflow` plus `INTENT_MLFLOW_MODEL_URI` loads from MLflow.
+- `INTENT_MLFLOW_TRACKING_URI` and `INTENT_MLFLOW_EXPERIMENT` configure MLflow logging/loading.
+- `INTENT_RULE_CONFIDENCE_THRESHOLD` and `INTENT_ML_CONFIDENCE_THRESHOLD` control the hybrid recognizer handoff.
 
 Behavior:
 
