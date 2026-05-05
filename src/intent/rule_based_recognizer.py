@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Pattern
 
-from src.intent.types import IntentPrediction
+from src.intent.types import Intent, IntentPrediction
 
 
 @dataclass
@@ -15,8 +15,8 @@ def _compile_pattern(pattern: str) -> Pattern[str]:
     return re.compile(pattern, flags=re.IGNORECASE)
 
 
-DEFAULT_RULES: Dict[str, IntentRule] = {
-    "advisor_search": IntentRule(
+DEFAULT_RULES: Dict[Intent, IntentRule] = {
+    Intent.ADVISOR_SEARCH: IntentRule(
         keywords=[
             "advisor",
             "supervisor",
@@ -34,7 +34,7 @@ DEFAULT_RULES: Dict[str, IntentRule] = {
             _compile_pattern(r"\b(find|looking for|need|want)\b.{0,20}\b(supervisor|advisor|professor)\b.{0,10}\bin\b"),
         ],
     ),
-    "topic_search": IntentRule(
+    Intent.TOPIC_SEARCH: IntentRule(
         keywords=[
             "topic",
             "field",
@@ -53,7 +53,7 @@ DEFAULT_RULES: Dict[str, IntentRule] = {
             _compile_pattern(r"\bwhat\b.*\btopics?\b.*\bavailable\b"),
         ],
     ),
-    "availability_search": IntentRule(
+    Intent.AVAILABILITY_SEARCH: IntentRule(
         keywords=[
             "available",
             "availability",
@@ -68,7 +68,7 @@ DEFAULT_RULES: Dict[str, IntentRule] = {
             _compile_pattern(r"\b(available|availability|open)\b.*\b(now|currently|this semester)\b"),
         ],
     ),
-    "publication_or_expertise_search": IntentRule(
+    Intent.PUBLICATION_OR_EXPERTISE_SEARCH: IntentRule(
         keywords=[
             "publication",
             "published",
@@ -89,7 +89,7 @@ DEFAULT_RULES: Dict[str, IntentRule] = {
 
 
 class RuleBasedIntentRecognizer:
-    def __init__(self, rules: Dict[str, IntentRule] | None = None) -> None:
+    def __init__(self, rules: Dict[Intent | str, IntentRule] | None = None) -> None:
         self.rules = rules or DEFAULT_RULES
 
     def predict(self, text: str) -> IntentPrediction | None:
@@ -97,7 +97,7 @@ class RuleBasedIntentRecognizer:
         if not normalized:
             return None
 
-        best_intent: str | None = None
+        best_intent: Intent | str | None = None
         best_score = 0.0
 
         for intent, rule in self.rules.items():

@@ -5,7 +5,7 @@ from config import ENABLE_LLM_SEARCH
 from src.advisors.models import MatchAdvisor
 from src.helpers.text_normalization import strip_filler, strip_query_wrapper
 from src.intent.hybrid_recognizer import HybridIntentRecognizer
-from src.intent.types import IntentPrediction
+from src.intent.types import Intent, IntentPrediction
 from src.search_engines.chroma_engine import ChromaSearchEngine
 from src.search_engines.llm_search import llm_search_advisors
 
@@ -40,7 +40,7 @@ class AdvisorSearchCoordinator:
 
         prediction = self.intent.predict(raw_query)
         self.last_prediction = prediction
-        intent = prediction.intent
+        intent = Intent.parse(prediction.intent)
 
         slots = prediction.slots
         section_filter = slots.get("section")
@@ -53,26 +53,26 @@ class AdvisorSearchCoordinator:
                 raw_query
             )  # ← catches slot extraction failures
 
-        if intent == "list_all":
+        if intent == Intent.LIST_ALL:
             advisors = self.engine.get_all_advisors()
             return [
                 MatchAdvisor(advisor=a, score=1.0, document="")
                 for a in advisors.values()
             ][:top_k]
 
-        if prediction.intent == "advisor_search":
+        if prediction.intent == Intent.ADVISOR_SEARCH:
             if slots.get("name"):
                 return self.engine._search_hard_scores(slots["name"])
             return self.engine.search(
                 search_query, top_k=top_k, section_filter=section_filter
             )
 
-        if prediction.intent == "topic_search":
+        if prediction.intent == Intent.TOPIC_SEARCH:
             return self.engine.search(
                 search_query, top_k=top_k, section_filter=section_filter
             )
 
-        if intent == "search_by_name":
+        if intent == Intent.SEARCH_BY_NAME:
             # Hard name lookup only - no semantic noise
             results = self.engine._search_hard_scores(raw_query)
             if results:
@@ -80,14 +80,13 @@ class AdvisorSearchCoordinator:
             # Graceful fallback if name wasn't found
             return self.engine.search(raw_query, top_k=top_k)
 
-        if intent == "search_by_section":
+        if intent == Intent.SEARCH_BY_SECTION:
             section = self._extract_section(raw_query)
             return self.engine.search(raw_query, top_k=top_k, section_filter=section)
 
         if intent in {
-            "publication_or_expertise_search",
-            "topic_search",
-            "search_by_expertise",
+            Intent.PUBLICATION_OR_EXPERTISE_SEARCH,
+            Intent.SEARCH_BY_EXPERTISE
         }:
             # Strip conversational filler before embedding
             cleaned = strip_filler(raw_query)
@@ -95,7 +94,7 @@ class AdvisorSearchCoordinator:
 
         # "get_info", "unknown", fallback
         results = self.engine.search(raw_query, top_k=top_k)
-        if intent == "unknown":
+        if intent == Intent.UNKNOWN:
             return self._escalate_unknown_intent_if_weak(
                 raw_query=raw_query,
                 standard_results=results,

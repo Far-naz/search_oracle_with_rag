@@ -1,6 +1,6 @@
 from src.intent.ml_recognizer import MLIntentRecognizer
 from src.intent.rule_based_recognizer import RuleBasedIntentRecognizer
-from src.intent.types import IntentPrediction
+from src.intent.types import Intent, IntentPrediction
 
 
 class HybridIntentRecognizer:
@@ -14,7 +14,7 @@ class HybridIntentRecognizer:
         ml_recognizer: MLIntentRecognizer | None = None,
         rule_confidence_threshold: float = 0.6,
         ml_confidence_threshold: float = 0.45,
-        fallback_intent: str = "unknown",
+        fallback_intent: Intent | str = Intent.UNKNOWN,
     ) -> None:
         self.rule_recognizer = rule_recognizer or RuleBasedIntentRecognizer()
         self.ml_recognizer = ml_recognizer
