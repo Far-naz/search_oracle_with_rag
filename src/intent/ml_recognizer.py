@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import Literal, Sequence
 
 import numpy as np
+from sklearn.exceptions import NotFittedError
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
+from sklearn.utils.validation import check_is_fitted
 from xgboost import XGBClassifier
 
 from src.search_engines.bm25 import tokenize
@@ -147,7 +149,15 @@ class MLIntentRecognizer:
 
     def _transform_features(self, preprocessed_texts: Sequence[str]):
         if self.feature_extractor == "tfidf":
-            return self.vectorizer.transform(preprocessed_texts)
+            self._ensure_tfidf_vectorizer_is_fitted()
+            try:
+                return self.vectorizer.transform(preprocessed_texts)
+            except NotFittedError as exc:
+                raise RuntimeError(
+                    "TF-IDF vectorizer is not fitted. Train and save the intent "
+                    "model before calling predict(), or regenerate the saved "
+                    "intent model artifact."
+                ) from exc
 
         if self.feature_extractor == "word2vec":
             if self.word2vec_model is None:
@@ -155,6 +165,17 @@ class MLIntentRecognizer:
             return self._to_word2vec_matrix(preprocessed_texts)
 
         raise ValueError(f"Unsupported feature_extractor: {self.feature_extractor}")
+
+    def _ensure_tfidf_vectorizer_is_fitted(self) -> None:
+        try:
+            check_is_fitted(self.vectorizer, "vocabulary_")
+            check_is_fitted(self.vectorizer, "idf_")
+        except NotFittedError as exc:
+            raise RuntimeError(
+                "TF-IDF vectorizer is not fitted. Train and save the intent "
+                "model before calling predict(), or regenerate the saved "
+                "intent model artifact."
+            ) from exc
 
     def _train_word2vec(self, preprocessed_texts: Sequence[str]):
         try:

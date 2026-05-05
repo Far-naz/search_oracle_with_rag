@@ -75,6 +75,14 @@ def test_ml_recognizer_rejects_unsupported_labels() -> None:
         recognizer.fit(["hello"], ["greeting"])
 
 
+def test_ml_recognizer_reports_unfitted_tfidf_vectorizer() -> None:
+    recognizer = MLIntentRecognizer(model_type="logistic_regression")
+    recognizer._is_fitted = True
+
+    with pytest.raises(RuntimeError, match="TF-IDF vectorizer is not fitted"):
+        recognizer.predict("please recommend an advisor")
+
+
 def test_ml_recognizer_preprocesses_text() -> None:
     recognizer = MLIntentRecognizer(
         model_type="logistic_regression",
