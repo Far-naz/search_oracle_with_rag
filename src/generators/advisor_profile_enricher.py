@@ -1,18 +1,3 @@
-"""
-Enrich advisor JSON records from their CBS profile URLs.
-
-This script:
-- loads advisors from the JSON file
-- fetches each advisor profile page
-- extracts missing fields from the HTML and embedded structured data
-- merges only missing values into the JSON records
-- writes the updated JSON back to disk
-
-Usage:
-    python generators/advisor_profile_enricher.py
-    python generators/advisor_profile_enricher.py --input data/cbs_employees.json --output data/cbs_employees.json
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -435,11 +420,6 @@ def merge_missing_fields(advisor: Advisor, scraped: dict[str, Any]) -> Advisor:
         section=advisor.section,
         email=advisor.email or scraped.get("email", ""),
         profile_url=advisor.profile_url or scraped.get("profile_url", ""),
-        research_interests=advisor.research_interests or scraped.get("research_interests", []),
-        courses=advisor.courses or scraped.get("courses", []),
-        recent_publications=advisor.recent_publications or scraped.get("recent_publications", []),
-        supervised_topics=advisor.supervised_topics or scraped.get("supervised_topics", []),
-        building=advisor.building or scraped.get("building", ""),
         research_output=current_research_output or scraped_research_output,
         activities=current_activities or scraped_activities,
         press_media=current_press_media or scraped_press_media,

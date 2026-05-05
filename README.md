@@ -50,6 +50,89 @@ The results page shows:
 
 If you add a Gemini API key in the sidebar, the app can generate a short explanation of why each advisor matches your query.
 
+## Intent recognition module
+
+This repository now includes an intent recognition package with two layers:
+
+- rule-based detection for deterministic intents
+- ML-based classification for broader language variation
+
+The package is located under `src/intent` and supports these ML model types:
+
+- `logistic_regression`
+- `svm`
+- `xgboost`
+- `neural_network`
+- `bert_finetuned` (placeholder, intentionally not implemented yet)
+
+The ML recognizer supports preprocessing and feature extraction options:
+
+- stop-word removal
+- lightweight lemmatization
+- feature extraction with `tfidf` or `word2vec`
+
+Minimal usage:
+
+```python
+from src.intent import HybridIntentRecognizer, MLIntentRecognizer
+
+texts = [
+	"recommend an advisor for finance",
+	"which research area covers labor markets",
+	"advisor who is working on labor",
+]
+labels = [
+	"advisor_search",
+	"topic_search",
+	"publication_or_expertise_search",
+]
+
+ml = MLIntentRecognizer(
+	model_type="logistic_regression",
+	feature_extractor="tfidf",  # or "word2vec"
+	remove_stopwords=True,
+	use_lemmatization=True,
+)
+ml.fit(texts, labels)
+
+recognizer = HybridIntentRecognizer(ml_recognizer=ml)
+prediction = recognizer.predict("can you find me an advisor")
+
+print(prediction.intent, prediction.confidence, prediction.source)
+```
+
+### Stored ML intent model
+
+The Streamlit app loads a trained ML recognizer from `models/intent/intent_model.pkl`
+when `ENABLE_ML_INTENT_RECOGNITION = True`. If that file is missing, the app still
+runs with rule-based intent recognition only.
+
+Train and store the local model artifact:
+
+```bash
+python -m src.intent.train_model
+```
+
+The same training command can also log the artifact to MLflow:
+
+```bash
+python -m src.intent.train_model --mlflow
+```
+
+Useful settings:
+
+- `INTENT_MODEL_PATH` controls the local pickle artifact path.
+- `INTENT_MODEL_STORE=local` loads the local artifact.
+- `INTENT_MODEL_STORE=mlflow` plus `INTENT_MLFLOW_MODEL_URI` loads from MLflow.
+- `INTENT_MLFLOW_TRACKING_URI` and `INTENT_MLFLOW_EXPERIMENT` configure MLflow logging/loading.
+- `INTENT_RULE_CONFIDENCE_THRESHOLD` and `INTENT_ML_CONFIDENCE_THRESHOLD` control the hybrid recognizer handoff.
+
+Behavior:
+
+- The hybrid recognizer checks rule-based signals first.
+- If rule confidence is low or no rule matches, it falls back to the ML model.
+- If neither returns a strong result, it returns `unknown`.
+
 ## Data refresh
 
 The UI includes a button for refreshing advisor data, but that feature depends on `generators/advisor_profile_enricher.py`. If that file is not present in your checkout, the app still runs and the refresh button shows a notice instead of failing.

@@ -3,3 +3,7 @@ chromadb
 requests
 sentence_transformers
 pytest
+scikit-learn
+xgboost
+gensim
+mlflow
