@@ -32,6 +32,7 @@ DEFAULT_RULES: Dict[Intent, IntentRule] = {
             _compile_pattern(r"\b(find|recommend|match)\b.*\b(advisor|supervisor|professor)\b"),
             _compile_pattern(r"\b(advisor|supervisor|professor)\b.*\b(for|about|in)\b"),
             _compile_pattern(r"\b(find|looking for|need|want)\b.{0,20}\b(supervisor|advisor|professor)\b.{0,10}\bin\b"),
+            _compile_pattern(r"\b(advisor|supervisor|professor)\b.*\b(working on|works on|researching|specializes in)\b"),
         ],
     ),
     Intent.TOPIC_SEARCH: IntentRule(
@@ -82,7 +83,6 @@ DEFAULT_RULES: Dict[Intent, IntentRule] = {
         regex_patterns=[
             _compile_pattern(r"\b(publication|published|paper)\b.*\b(on|about|in)\b"),
             _compile_pattern(r"\b(expertise|expert|specialist|technique|method)\b"),
-            _compile_pattern(r"\b(advisor|supervisor|professor)\b.*\b(working on|works on|researching|specializes in)\b"),
         ],
     ),
 }
